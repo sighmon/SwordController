@@ -83,20 +83,30 @@ void loop()
     
     if (data0 == 0x00) {
       // It's a request for stored data
-      // TODO: Acceleration
+      // Send Acceleration
+      byte * b = (byte *) &acceleration;
+      byte b1;
+      byte b2;
+      for (int i=0; i<4; i++) {
+        b1 = (b[i] >> 4) & 0x0f;
+        b2 = (b[i] & 0x0f);
+      }
+      BLEMini_write(0x02);
+      BLEMini_write(b1);
+      BLEMini_write(b2);
       
       // Send Speed
-      BLEMini_write(0x02);
+      BLEMini_write(0x03);
       BLEMini_write(maxSpeed & 0xFF);
       BLEMini_write(maxSpeed >> 8);
       
       // Send Steps
-      BLEMini_write(0x02);
+      BLEMini_write(0x04);
       BLEMini_write(stepsPerRotation & 0xFF);
       BLEMini_write(stepsPerRotation >> 8);
       
       // Send Delay
-      BLEMini_write(0x02);
+      BLEMini_write(0x05);
       BLEMini_write(delayBetweenLoops & 0xFF);
       BLEMini_write(delayBetweenLoops >> 8);
     }
@@ -155,4 +165,6 @@ void writeToEepromIfNeeded(int address, byte data) {
     EEPROM.write(address, data);
   }
 }
+
+
 
