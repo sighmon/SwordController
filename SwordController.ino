@@ -32,7 +32,7 @@ int delayAddress = 3;
 AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIRECTION_PIN);
 int stepsPerRotation = 118;
 int maxSpeed = 7;
-float acceleration = 0.5;
+int acceleration = 50;
 int delayBetweenLoops = 3000;
 
 // Pin 13 is the onboard LED pin.. for testing it's alive
@@ -52,7 +52,7 @@ void setup()
   stepper.enableOutputs();
   // Change these to suit your stepper if you want
   stepper.setMaxSpeed(maxSpeed);
-  stepper.setAcceleration(acceleration);
+  stepper.setAcceleration(acceleration/100);
   stepper.setCurrentPosition(-stepsPerRotation);
   stepper.moveTo(stepsPerRotation);
   
@@ -66,34 +66,26 @@ void loop()
   
   // If data is ready
   while ( BLEMini_available() >= 3 )
-  {
-    Serial.print("Got BLE: ");
-    
+  {    
     // read out command and data
     byte data0 = BLEMini_read();
     byte data1 = BLEMini_read();
     byte data2 = BLEMini_read();
     
-    Serial.print(data0, HEX);
-    Serial.print(", ");
-    Serial.print(data1, HEX);
-    Serial.print(", ");
-    Serial.print(data2, HEX);
-    Serial.println("");
+//    Serial.print(data0, HEX);
+//    Serial.print(", ");
+//    Serial.print(data1, HEX);
+//    Serial.print(", ");
+//    Serial.print(data2, HEX);
+//    Serial.println("");
     
     if (data0 == 0x00) {
       // It's a request for stored data
+
       // Send Acceleration
-      byte * b = (byte *) &acceleration;
-      byte b1;
-      byte b2;
-      for (int i=0; i<4; i++) {
-        b1 = (b[i] >> 4) & 0x0f;
-        b2 = (b[i] & 0x0f);
-      }
       BLEMini_write(0x02);
-      BLEMini_write(b1);
-      BLEMini_write(b2);
+      BLEMini_write(acceleration & 0xFF);
+      BLEMini_write(acceleration >> 8);
       
       // Send Speed
       BLEMini_write(0x03);
@@ -114,33 +106,33 @@ void loop()
     {
       if (data1 == 0x01) {
         digitalWrite(DIGITAL_OUT_PIN, HIGH);
-        Serial.write("high");
+//        Serial.write("high");
       } else {
         digitalWrite(DIGITAL_OUT_PIN, LOW);
-        Serial.write("low");
+//        Serial.write("low");
       }
     }
-    else if (data0 == 0x02)
+    else if (data0 == 0x02)  // It's the slider values for the stepper controls
     {
-      Serial.print(data1, HEX);
+//      Serial.print(data1, HEX);
       // Write byte to EEPROM
       writeToEepromIfNeeded(accelerationAddress, data1);
     }
     else if (data0 == 0x03)
     {
-      Serial.print(data1, HEX);
+//      Serial.print(data1, HEX);
       // Write byte to EEPROM
       writeToEepromIfNeeded(speedAddress, data1);
     }
     else if (data0 == 0x04)
     {
-      Serial.print(data1, HEX);
+//      Serial.print(data1, HEX);
       // Write byte to EEPROM
       writeToEepromIfNeeded(stepsAddress, data1);
     }
     else if (data0 == 0x05)
     {
-      Serial.print(data1, HEX);
+//      Serial.print(data1, HEX);
       // Write byte to EEPROM
       writeToEepromIfNeeded(delayAddress, data1);
     }
