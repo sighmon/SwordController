@@ -45,15 +45,16 @@ unsigned long previousMillis;       // for comparison with currentMillis
 int samplingInterval = 250;          // how often to run the main loop (in ms)
 
 void setup()
-{
+{  
+  BLEMini_begin(57600);
+  Serial.begin(57600);
+  // Serial.print("I'm alive");
+
   // Read default values from EEPROM
   acceleration = readWordFromEEPROM(accelerationAddress);
   maxSpeed = readWordFromEEPROM(speedAddress);
   stepsPerRotation = readWordFromEEPROM(stepsAddress);
   delayBetweenLoops = readWordFromEEPROM(delayAddress);
-  
-  BLEMini_begin(57600);
-  Serial.begin(57600);
   
   stepper.setEnablePin(ENABLE_PIN);
   stepper.setPinsInverted(false,false,true);
