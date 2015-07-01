@@ -21,18 +21,20 @@
 
 // Define EEPROM address to write values to
 int accelerationAddress = 0;
-int speedAddress = 1;
-int stepsAddress = 2;
-int delayAddress = 3;
+int speedAddress = 2;
+int stepsAddress = 4;
+int delayAddress = 6;
 
 // Define a stepper and the pins it will use
 #define DIRECTION_PIN      6
 #define ENABLE_PIN         7
 #define STEP_PIN           8
+
 AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIRECTION_PIN);
-int stepsPerRotation = 118;
-int maxSpeed = 7;
+
 int acceleration = 50;
+int maxSpeed = 7;
+int stepsPerRotation = 118;
 int delayBetweenLoops = 3000;
 
 // Pin 13 is the onboard LED pin.. for testing it's alive
@@ -44,6 +46,12 @@ int samplingInterval = 250;          // how often to run the main loop (in ms)
 
 void setup()
 {
+  // Read default values from EEPROM
+  acceleration = readWordFromEEPROM(accelerationAddress);
+  maxSpeed = readWordFromEEPROM(speedAddress);
+  stepsPerRotation = readWordFromEEPROM(stepsAddress);
+  delayBetweenLoops = readWordFromEEPROM(delayAddress);
+  
   BLEMini_begin(57600);
   Serial.begin(57600);
   
@@ -66,18 +74,18 @@ void loop()
   
   // If data is ready
   while ( BLEMini_available() >= 3 )
-  {    
+  {
     // read out command and data
     byte data0 = BLEMini_read();
     byte data1 = BLEMini_read();
     byte data2 = BLEMini_read();
     
-//    Serial.print(data0, HEX);
-//    Serial.print(", ");
-//    Serial.print(data1, HEX);
-//    Serial.print(", ");
-//    Serial.print(data2, HEX);
-//    Serial.println("");
+    // Serial.print(data0, HEX);
+    // Serial.print(", ");
+    // Serial.print(data1, HEX);
+    // Serial.print(", ");
+    // Serial.print(data2, HEX);
+    // Serial.println("");
     
     if (data0 == 0x00) {
       // It's a request for stored data
@@ -117,30 +125,41 @@ void loop()
 //      Serial.print(data1, HEX);
       // Write byte to EEPROM
       writeToEepromIfNeeded(accelerationAddress, data1);
+      writeToEepromIfNeeded(accelerationAddress + 1, data2);
+      acceleration = data1 + (data2 << 8);
     }
     else if (data0 == 0x03)
     {
 //      Serial.print(data1, HEX);
       // Write byte to EEPROM
       writeToEepromIfNeeded(speedAddress, data1);
+      writeToEepromIfNeeded(speedAddress + 1, data2);
+      maxSpeed = data1 + (data2 << 8);
     }
     else if (data0 == 0x04)
     {
 //      Serial.print(data1, HEX);
       // Write byte to EEPROM
       writeToEepromIfNeeded(stepsAddress, data1);
+      writeToEepromIfNeeded(stepsAddress + 1, data2);
+      stepsPerRotation = data1 + (data2 << 8);
     }
     else if (data0 == 0x05)
     {
 //      Serial.print(data1, HEX);
       // Write byte to EEPROM
       writeToEepromIfNeeded(delayAddress, data1);
+      writeToEepromIfNeeded(delayAddress + 1, data2);
+      delayBetweenLoops = data1 + (data2 << 8);
     }
   }
   
   if (stepper.distanceToGo() == 0) {
     // FIXME: this will stop BLE communication
     delay(delayBetweenLoops);
+    stepper.setCurrentPosition(sign(stepper.currentPosition()) * stepsPerRotation);
+    stepper.setMaxSpeed(maxSpeed);
+    stepper.setAcceleration(acceleration/100);
     stepper.moveTo(-stepper.currentPosition());
   }
   
@@ -158,5 +177,15 @@ void writeToEepromIfNeeded(int address, byte data) {
   }
 }
 
+int sign(int n) {
+  if (n >= 0) {
+    return 1;
+  } else {
+    return -1;
+  }
+}
 
+int readWordFromEEPROM(int address) {
+  return (EEPROM.read(address) + (EEPROM.read(address + 1) << 8));
+}
 
